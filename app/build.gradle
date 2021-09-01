@@ -1,0 +1,162 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+}
+//apply plugin: 'com.beta.plugin.betauploader'
+
+
+android {
+    compileSdkVersion 30
+    buildToolsVersion "30.0.3"
+
+    defaultConfig {
+        applicationId "com.example.kotlintest"
+        minSdkVersion 16
+        targetSdkVersion 30
+        versionCode 10086
+        versionName "5.20.1"
+        multiDexEnabled true
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            ndk {
+                abiFilters "arm64-v8a"//, "armeabi-v7a", "x86", "x86_64", "arm64-v8a"
+            }
+        }
+
+        debug {
+            ndk {
+                abiFilters "arm64-v8a"//, "armeabi-v7a", "x86", "x86_64", "arm64-v8a"
+            }
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+}
+def changelogFile = new File("changelog.txt");
+StringBuilder changeLogBuilder = new StringBuilder();
+if (changelogFile.exists()) {
+    def changeLogs = changelogFile.readLines()
+    for (String item : changeLogs) {
+        changeLogBuilder.append(item).append('\n')
+    }
+}
+
+import okhttp3.Response
+import com.UpYun
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
+import java.text.SimpleDateFormat
+import com.beta.plugin.BetaPlugin
+def apkReleaseAndUploadToBeta = task apkReleaseAndUploadToBeta(dependsOn: "assembleDebug") {
+    doLast {
+        String versionCode = android.defaultConfig.versionCode
+        String pathName = "$buildDir/outputs/apk/debug/app-debug.apk"
+        def apkFile = new File(pathName)
+        println("apkFile:" + apkFile.getAbsolutePath())
+        def uploadInfo =  BetaPlugin.UploadInfo()
+        uploadInfo.project = project
+        uploadInfo.versionCode = android.defaultConfig.versionCode
+        uploadInfo.versionName = android.defaultConfig.versionName
+        uploadInfo.title = "悦跑圈debug渠道正式版"
+        uploadInfo.description = "和市场版本保持一致的版本"
+        uploadInfo.extra = ""
+        BetaPlugin.post(apkFile.getAbsolutePath(), uploadInfo)
+    }
+}
+
+
+/// 打包BC端
+String webHook = "https://oapi.dingtalk.com/robot/send?access_token=e5b71e57841faba47c94a4fe7d1bbfd6a6432c1a27fcb9e365ae6fd1b776d023"
+
+def uploadFitnessCAlpha = task uploadFitnessCAlpha(dependsOn: "assembleDebug") {
+    doLast { output ->
+        UpYun upyun = new UpYun("frontend-app", "frontendapp", "itE3xeNaXYZX0ZGA")
+        def upgradeInfo = new JSONObject()
+        upgradeInfo.put("version", android.defaultConfig.versionName)
+        upgradeInfo.put("versionCode", android.defaultConfig.versionCode)
+        upgradeInfo.put("content", "修复了若干个bug？")
+        upgradeInfo.put("minSupportVersionCode", 1)
+
+        //版本名称
+        String versionName = URLEncoder.encode("${android.defaultConfig.versionName}", "utf-8")
+        //apk文件路径
+        def apkPath = "$buildDir/outputs/apk/debug/app-debug.apk"
+        //声明上传文保存路径以及下载路径
+        String uploadPath = "apk/joyrun_${versionName}_${new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date())}.apk"
+        //上传apk文件
+        upyun.writeFile(uploadPath, new File(apkPath))
+        //标题
+        String title = URLEncoder.encode("悦跑圈内测版", "utf-8")
+        //描述
+        String description = URLEncoder.encode("修复了若干个bug", "utf-8")
+        //版本号
+        String versionCode = URLEncoder.encode("${android.defaultConfig.versionCode}", "utf-8")
+        //扩展信息
+        String extra = URLEncoder.encode("", "utf-8")
+        //下载路径
+        String downloadUr = URLEncoder.encode("http://frontend-app.thejoyrun.com/${uploadPath}", "utf-8")
+        //上传到钉钉
+        String url = String.format("%s?title=%s&description=%s&versionName=%s&versionCode=%s&extra=%s&downloadUrl=%s&platform=1", "https://beta.thejoyrun.com/api/uploadBeta", title, description, versionName, versionCode, extra, downloadUr)
+        println("url:"+url)
+        try {
+            //初始化OkHttpClient
+            OkHttpClient okHttpClient = new OkHttpClient.Builder().build()
+            Request.Builder builder = new Request.Builder().url(url).get()
+            //执行请求
+            Response response  = okHttpClient.newCall(builder.build()).execute()
+            println "statusCode:" + response.code()
+            println "response body: " + response2.body().string()
+             if (response.code() == 200){
+                 println("上传成功"+downloadUr)
+             }else {
+                 println("上传失败"+downloadUr)
+             }
+            println("下载地址：${downloadUr}")
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
+uploadFitnessCAlpha.setGroup("joyrun")
+
+dependencies {
+    api fileTree(dir: 'libs', include: ['*.jar,*.aar'])
+    implementation 'androidx.multidex:multidex:2.0.1'
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation 'androidx.core:core-ktx:1.6.0'
+    implementation 'androidx.appcompat:appcompat:1.3.1'
+    implementation 'com.google.android.material:material:1.4.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+//    implementation project(path: ':gson')
+    testImplementation 'junit:junit:4.+'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+//    api 'com.google.code.gson:gson:2.8.6'
+//    api 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.1'
+//    api 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.1'
+    api "com.squareup.moshi:moshi-kotlin:1.12.0"
+    api 'com.google.code.gson:gson:2.8.7'
+    api "androidx.lifecycle:lifecycle-runtime-ktx:2.2.0"
+    api "androidx.fragment:fragment-ktx:1.2.0"
+    api "androidx.activity:activity-ktx:1.1.0"
+
+    api 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0'
+    api 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.0'
+//    implementation(name: 'TingPhoneOpenSDK-8.0.3', ext: 'aar')
+    implementation(name: 'joyrun-sign', ext: 'aar')
+
+//    implementation 'io.github.sinaweibosdk:core:11.6.0@aar'
+
+}

@@ -1,0 +1,21 @@
+apply plugin: 'com.android.library'
+
+android {
+
+    compileOptions {
+        android.compileOptions.sourceCompatibility 1.8
+        android.compileOptions.targetCompatibility 1.8
+    }
+}
+
+configurations {
+    all {
+        transitive = true
+    }
+}
+
+dependencies {
+    api fileTree(dir: 'libs', include: ['*.jar'])
+    api "androidx.fragment:fragment-ktx:1.2.0"
+    api "androidx.activity:activity-ktx:1.1.0"
+}

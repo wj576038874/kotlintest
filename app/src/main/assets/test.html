@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/xhtml; charset=utf-8"/>
+</head>
+
+<body>
+
+<!--    <button onclick="post_json('','')">asdasd</button>-->
+
+<form action="http://www.baidu.com" method="post">
+    <input type="hidden" name="key" value="data[key]">
+    <input type="hidden" name="key" value="data[key]">
+    <input type="hidden" name="key" value="data[key]">
+    <input type="hidden" name="key" value="data[key]">
+    <input type="hidden" name="key" value="data[key]">
+    <button type="submit">提交form表单</button>
+</form>
+
+</body>
+<script type="text/javascript" language="JavaScript">
+function post_json(path,data){
+    //form 提交表单 ios代码
+    alert("asd");
+    var method = "POST"
+    var form = document.createElement("form")
+    form.setAttribute("method",method);
+    form.setAttribute("action",path);
+    for(var key in data){
+        if(data.hasOwnProperty(key)){
+            var hiddenFile = document.createElement("input");
+            hiddenFiled.setAttribute("type","hidden")
+            hiddenFiled.setAttribute("name",key);
+            hiddenFiled.setAttribute("value",data[key]);
+        }
+        form.appendChild(hiddenFiled)
+    }
+
+    document.body.appendChild(form)
+
+    form.submit()
+}
+
+</script>
+</html>
